@@ -119,6 +119,17 @@ export default function CrossSalesTab() {
       <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="2"/>
     </Borders>
   </Style>
+  <Style ss:ID="PanelHeaderBlue">
+    <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+    <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#FFFFFF"/>
+    <Interior ss:Color="#2196F3" ss:Pattern="Solid"/>
+    <Borders>
+      <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="2"/>
+      <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="2"/>
+      <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="2"/>
+    </Borders>
+  </Style>
   <Style ss:ID="PanelHeaderGreen">
     <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
     <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#FFFFFF"/>
@@ -326,90 +337,80 @@ export default function CrossSalesTab() {
   </Row>
   <Row ss:Height="10"></Row>
   
-  <!-- KUR VE Z RAPOR PANELLERI YAN YANA -->
+  <!-- KUR, PAX VE Z RAPOR PANELLERI YAN YANA -->
   <!-- Panel Basliklari -->
   <Row ss:Height="25">
     <Cell ss:MergeAcross="1" ss:StyleID="PanelHeaderYellow"><Data ss:Type="String">GUNLUK KURLAR</Data></Cell>
     <Cell ss:StyleID="Empty"></Cell>
+    <Cell ss:MergeAcross="1" ss:StyleID="PanelHeaderBlue"><Data ss:Type="String">PAX SAYISI</Data></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
     <Cell ss:MergeAcross="2" ss:StyleID="PanelHeaderGreen"><Data ss:Type="String">Z RAPOR</Data></Cell>
-    <Cell ss:StyleID="Empty"></Cell>
-    <Cell ss:StyleID="Empty"></Cell>
-    <Cell ss:StyleID="Empty"></Cell>
     <Cell ss:StyleID="Empty"></Cell>
   </Row>
   
-  <!-- Satir 1: Kur USD / Z-KK -->
+  <!-- Satir 1: Kur USD / PAX Yetiskin / Z-KK -->
   <Row ss:Height="24">
     <Cell ss:StyleID="PanelLabel"><Data ss:Type="String">USD Kuru</Data></Cell>
     <Cell ss:StyleID="PanelValue"><Data ss:Type="String">${usdRate.toFixed(4)} TL</Data></Cell>
     <Cell ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="PanelLabel"><Data ss:Type="String">Yetiskin</Data></Cell>
+    <Cell ss:StyleID="PanelValue"><Data ss:Type="Number">${totals.totalAdult}</Data></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
     <Cell ss:StyleID="ZRaporLabel"><Data ss:Type="String">Kredi Karti (TL)</Data></Cell>
     <Cell ss:MergeAcross="1" ss:StyleID="ZRaporValue"><Data ss:Type="String">${totals.kkTl.toFixed(2)} TL</Data></Cell>
-    <Cell ss:StyleID="Empty"></Cell>
-    <Cell ss:StyleID="Empty"></Cell>
-    <Cell ss:StyleID="Empty"></Cell>
-    <Cell ss:StyleID="Empty"></Cell>
   </Row>
   
-  <!-- Satir 2: Kur EUR / Z-Nakit TL -->
+  <!-- Satir 2: Kur EUR / PAX Cocuk / Z-Nakit TL -->
   <Row ss:Height="24">
     <Cell ss:StyleID="PanelLabel"><Data ss:Type="String">EUR Kuru</Data></Cell>
     <Cell ss:StyleID="PanelValue"><Data ss:Type="String">${eurRate.toFixed(4)} TL</Data></Cell>
     <Cell ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="PanelLabel"><Data ss:Type="String">Cocuk</Data></Cell>
+    <Cell ss:StyleID="PanelValue"><Data ss:Type="Number">${totals.totalChild}</Data></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
     <Cell ss:StyleID="ZRaporLabel"><Data ss:Type="String">Nakit TL</Data></Cell>
     <Cell ss:MergeAcross="1" ss:StyleID="ZRaporValue"><Data ss:Type="String">${totals.cashTl.toFixed(2)} TL</Data></Cell>
-    <Cell ss:StyleID="Empty"></Cell>
-    <Cell ss:StyleID="Empty"></Cell>
-    <Cell ss:StyleID="Empty"></Cell>
-    <Cell ss:StyleID="Empty"></Cell>
   </Row>
   
-  <!-- Satir 3: bos / Z-Nakit USD -->
+  <!-- Satir 3: bos / PAX Toplam / Z-Nakit USD -->
   <Row ss:Height="24">
     <Cell ss:MergeAcross="1" ss:StyleID="Empty"></Cell>
     <Cell ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="ZRaporLabelBold"><Data ss:Type="String">TOPLAM PAX</Data></Cell>
+    <Cell ss:StyleID="ZRaporValueBold"><Data ss:Type="Number">${totals.totalAdult + totals.totalChild}</Data></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
     <Cell ss:StyleID="ZRaporLabel"><Data ss:Type="String">Nakit USD</Data></Cell>
     <Cell ss:MergeAcross="1" ss:StyleID="ZRaporValue"><Data ss:Type="String">${totals.cashUsd.toFixed(2)} $</Data></Cell>
-    <Cell ss:StyleID="Empty"></Cell>
-    <Cell ss:StyleID="Empty"></Cell>
-    <Cell ss:StyleID="Empty"></Cell>
-    <Cell ss:StyleID="Empty"></Cell>
   </Row>
   
-  <!-- Satir 4: bos / Z-Nakit EUR -->
+  <!-- Satir 4: bos / bos / Z-Nakit EUR -->
   <Row ss:Height="24">
+    <Cell ss:MergeAcross="1" ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
     <Cell ss:MergeAcross="1" ss:StyleID="Empty"></Cell>
     <Cell ss:StyleID="Empty"></Cell>
     <Cell ss:StyleID="ZRaporLabel"><Data ss:Type="String">Nakit EUR</Data></Cell>
     <Cell ss:MergeAcross="1" ss:StyleID="ZRaporValue"><Data ss:Type="String">${totals.cashEur.toFixed(2)} EUR</Data></Cell>
-    <Cell ss:StyleID="Empty"></Cell>
-    <Cell ss:StyleID="Empty"></Cell>
-    <Cell ss:StyleID="Empty"></Cell>
-    <Cell ss:StyleID="Empty"></Cell>
   </Row>
   
-  <!-- Satir 5: bos / Z-Toplam Nakit -->
+  <!-- Satir 5: bos / bos / Z-Toplam Nakit -->
   <Row ss:Height="24">
+    <Cell ss:MergeAcross="1" ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
     <Cell ss:MergeAcross="1" ss:StyleID="Empty"></Cell>
     <Cell ss:StyleID="Empty"></Cell>
     <Cell ss:StyleID="ZRaporLabelBold"><Data ss:Type="String">TOPLAM NAKIT (TL)</Data></Cell>
     <Cell ss:MergeAcross="1" ss:StyleID="ZRaporValueBold"><Data ss:Type="String">${cashTlTotal.toFixed(2)} TL</Data></Cell>
-    <Cell ss:StyleID="Empty"></Cell>
-    <Cell ss:StyleID="Empty"></Cell>
-    <Cell ss:StyleID="Empty"></Cell>
-    <Cell ss:StyleID="Empty"></Cell>
   </Row>
   
   <!-- Satir 6: Z Rapor Genel Toplam -->
   <Row ss:Height="28">
     <Cell ss:MergeAcross="1" ss:StyleID="Empty"></Cell>
     <Cell ss:StyleID="Empty"></Cell>
+    <Cell ss:MergeAcross="1" ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
     <Cell ss:StyleID="ZRaporGrandLabel"><Data ss:Type="String">GENEL TOPLAM (TL)</Data></Cell>
     <Cell ss:MergeAcross="1" ss:StyleID="ZRaporGrandValue"><Data ss:Type="String">${grandTotal.toFixed(2)} TL</Data></Cell>
-    <Cell ss:StyleID="Empty"></Cell>
-    <Cell ss:StyleID="Empty"></Cell>
-    <Cell ss:StyleID="Empty"></Cell>
-    <Cell ss:StyleID="Empty"></Cell>
   </Row>
   
   <Row ss:Height="15"></Row>
@@ -591,6 +592,8 @@ export default function CrossSalesTab() {
       cashTl: crossSales.reduce((sum, s) => sum + s.cashTl, 0),
       cashUsd: crossSales.reduce((sum, s) => sum + s.cashUsd, 0),
       cashEur: crossSales.reduce((sum, s) => sum + s.cashEur, 0),
+      totalAdult: crossSales.reduce((sum, s) => sum + s.adultQty, 0),
+      totalChild: crossSales.reduce((sum, s) => sum + s.childQty, 0),
     };
   };
 
