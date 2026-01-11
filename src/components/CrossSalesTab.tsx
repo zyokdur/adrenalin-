@@ -59,7 +59,17 @@ export default function CrossSalesTab() {
     const session = JSON.parse(localStorage.getItem('userSession') || '{}');
     const userName = session.personnel?.fullName || 'Kullanıcı';
     const kasaName = session.kasa?.name || 'Kasa';
+    
+    // Kurları localStorage'dan al
+    const kasaSettings = JSON.parse(localStorage.getItem(`kasaSettings_${session.kasa?.id}`) || '{}');
+    const usdRate = kasaSettings.usdRate || 30;
+    const eurRate = kasaSettings.eurRate || 50.4877;
+    
     const totals = getTotals();
+    
+    // Z Rapor hesaplamaları
+    const cashTlTotal = totals.cashTl + (totals.cashUsd * usdRate) + (totals.cashEur * eurRate);
+    const grandTotal = totals.kkTl + cashTlTotal;
     
     // Satır verilerini oluştur
     const dataRows = crossSales.map(sale => `<Row ss:Height="20">
@@ -69,10 +79,10 @@ export default function CrossSalesTab() {
       <Cell ss:StyleID="DataCenter"><Data ss:Type="String">${sale.currency}</Data></Cell>
       <Cell ss:StyleID="DataCenter"><Data ss:Type="String">${sale.paymentType}</Data></Cell>
       <Cell ss:StyleID="DataRight"><Data ss:Type="Number">${sale.total.toFixed(2)}</Data></Cell>
-      <Cell ss:StyleID="DataRightGreen"><Data ss:Type="${sale.kkTl > 0 ? 'Number' : 'String'}">${sale.kkTl > 0 ? sale.kkTl.toFixed(2) : '-'}</Data></Cell>
-      <Cell ss:StyleID="DataRightBlue"><Data ss:Type="${sale.cashTl > 0 ? 'Number' : 'String'}">${sale.cashTl > 0 ? sale.cashTl.toFixed(2) : '-'}</Data></Cell>
-      <Cell ss:StyleID="DataRightYellow"><Data ss:Type="${sale.cashUsd > 0 ? 'Number' : 'String'}">${sale.cashUsd > 0 ? sale.cashUsd.toFixed(2) : '-'}</Data></Cell>
-      <Cell ss:StyleID="DataRightPurple"><Data ss:Type="${sale.cashEur > 0 ? 'Number' : 'String'}">${sale.cashEur > 0 ? sale.cashEur.toFixed(2) : '-'}</Data></Cell>
+      <Cell ss:StyleID="DataRight"><Data ss:Type="${sale.kkTl > 0 ? 'Number' : 'String'}">${sale.kkTl > 0 ? sale.kkTl.toFixed(2) : '-'}</Data></Cell>
+      <Cell ss:StyleID="DataRight"><Data ss:Type="${sale.cashTl > 0 ? 'Number' : 'String'}">${sale.cashTl > 0 ? sale.cashTl.toFixed(2) : '-'}</Data></Cell>
+      <Cell ss:StyleID="DataRight"><Data ss:Type="${sale.cashUsd > 0 ? 'Number' : 'String'}">${sale.cashUsd > 0 ? sale.cashUsd.toFixed(2) : '-'}</Data></Cell>
+      <Cell ss:StyleID="DataRight"><Data ss:Type="${sale.cashEur > 0 ? 'Number' : 'String'}">${sale.cashEur > 0 ? sale.cashEur.toFixed(2) : '-'}</Data></Cell>
     </Row>`).join('');
     
     const html = `<?xml version="1.0" encoding="UTF-8"?>
@@ -88,31 +98,144 @@ export default function CrossSalesTab() {
     <Font ss:FontName="Calibri" ss:Size="10"/>
   </Style>
   <Style ss:ID="Title">
-    <Alignment ss:Horizontal="Left" ss:Vertical="Center"/>
-    <Font ss:FontName="Calibri" ss:Size="14" ss:Bold="1" ss:Color="#FFFFFF"/>
-    <Interior ss:Color="#FF6B6B" ss:Pattern="Solid"/>
+    <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+    <Font ss:FontName="Calibri" ss:Size="16" ss:Bold="1" ss:Color="#FFFFFF"/>
+    <Interior ss:Color="#E91E63" ss:Pattern="Solid"/>
     <Borders>
       <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="2"/>
+      <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="2"/>
+      <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="2"/>
+      <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="2"/>
+    </Borders>
+  </Style>
+  <Style ss:ID="PanelHeaderYellow">
+    <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+    <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#000000"/>
+    <Interior ss:Color="#FFC107" ss:Pattern="Solid"/>
+    <Borders>
+      <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="2"/>
+      <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="2"/>
+      <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="2"/>
+    </Borders>
+  </Style>
+  <Style ss:ID="PanelHeaderGreen">
+    <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+    <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#FFFFFF"/>
+    <Interior ss:Color="#4CAF50" ss:Pattern="Solid"/>
+    <Borders>
+      <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="2"/>
+      <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="2"/>
+      <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="2"/>
+    </Borders>
+  </Style>
+  <Style ss:ID="PanelLabel">
+    <Alignment ss:Horizontal="Left" ss:Vertical="Center"/>
+    <Font ss:FontName="Calibri" ss:Size="10" ss:Bold="1"/>
+    <Interior ss:Color="#F5F5F5" ss:Pattern="Solid"/>
+    <Borders>
+      <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
       <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+    </Borders>
+  </Style>
+  <Style ss:ID="PanelValue">
+    <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+    <Font ss:FontName="Calibri" ss:Size="10" ss:Bold="1"/>
+    <Interior ss:Color="#F5F5F5" ss:Pattern="Solid"/>
+    <Borders>
+      <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+    </Borders>
+  </Style>
+  <Style ss:ID="Empty">
+    <Interior ss:Color="#FFFFFF" ss:Pattern="Solid"/>
+  </Style>
+  <Style ss:ID="ZRaporLabel">
+    <Alignment ss:Horizontal="Left" ss:Vertical="Center"/>
+    <Font ss:FontName="Calibri" ss:Size="10" ss:Bold="1"/>
+    <Interior ss:Color="#F5F5F5" ss:Pattern="Solid"/>
+    <Borders>
+      <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+    </Borders>
+  </Style>
+  <Style ss:ID="ZRaporValue">
+    <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+    <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1"/>
+    <Interior ss:Color="#F5F5F5" ss:Pattern="Solid"/>
+    <Borders>
+      <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+    </Borders>
+  </Style>
+  <Style ss:ID="ZRaporLabelBold">
+    <Alignment ss:Horizontal="Left" ss:Vertical="Center"/>
+    <Font ss:FontName="Calibri" ss:Size="10" ss:Bold="1"/>
+    <Interior ss:Color="#E0E0E0" ss:Pattern="Solid"/>
+    <Borders>
+      <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+    </Borders>
+  </Style>
+  <Style ss:ID="ZRaporValueBold">
+    <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+    <Font ss:FontName="Calibri" ss:Size="12" ss:Bold="1"/>
+    <Interior ss:Color="#E0E0E0" ss:Pattern="Solid"/>
+    <Borders>
+      <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+    </Borders>
+  </Style>
+  <Style ss:ID="ZRaporGrandLabel">
+    <Alignment ss:Horizontal="Left" ss:Vertical="Center"/>
+    <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#FFFFFF"/>
+    <Interior ss:Color="#E91E63" ss:Pattern="Solid"/>
+    <Borders>
+      <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="2"/>
+      <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="2"/>
       <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
       <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="2"/>
     </Borders>
   </Style>
-  <Style ss:ID="TitleInfo">
-    <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>
-    <Font ss:FontName="Calibri" ss:Size="11" ss:Color="#FFFFFF"/>
-    <Interior ss:Color="#FF6B6B" ss:Pattern="Solid"/>
+  <Style ss:ID="ZRaporGrandValue">
+    <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+    <Font ss:FontName="Calibri" ss:Size="14" ss:Bold="1" ss:Color="#FFFFFF"/>
+    <Interior ss:Color="#E91E63" ss:Pattern="Solid"/>
     <Borders>
       <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="2"/>
       <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
-      <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="2"/>
+      <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="2"/>
+    </Borders>
+  </Style>
+  <Style ss:ID="SectionHeader">
+    <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+    <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#FFFFFF"/>
+    <Interior ss:Color="#37474F" ss:Pattern="Solid"/>
+    <Borders>
+      <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="2"/>
+      <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="2"/>
       <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="2"/>
     </Borders>
   </Style>
   <Style ss:ID="TableHeader">
     <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
     <Font ss:FontName="Calibri" ss:Size="10" ss:Bold="1" ss:Color="#FFFFFF"/>
-    <Interior ss:Color="#FF8C42" ss:Pattern="Solid"/>
+    <Interior ss:Color="#E91E63" ss:Pattern="Solid"/>
     <Borders>
       <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
       <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
@@ -123,7 +246,7 @@ export default function CrossSalesTab() {
   <Style ss:ID="TableHeaderLeft">
     <Alignment ss:Horizontal="Left" ss:Vertical="Center"/>
     <Font ss:FontName="Calibri" ss:Size="10" ss:Bold="1" ss:Color="#FFFFFF"/>
-    <Interior ss:Color="#FF8C42" ss:Pattern="Solid"/>
+    <Interior ss:Color="#E91E63" ss:Pattern="Solid"/>
     <Borders>
       <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
       <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
@@ -135,69 +258,36 @@ export default function CrossSalesTab() {
     <Alignment ss:Horizontal="Left" ss:Vertical="Center"/>
     <Font ss:FontName="Calibri" ss:Size="10"/>
     <Borders>
-      <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#BFBFBF"/>
-      <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#BFBFBF"/>
-      <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#BFBFBF"/>
+      <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
     </Borders>
   </Style>
   <Style ss:ID="DataCenter">
     <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
     <Font ss:FontName="Calibri" ss:Size="10"/>
     <Borders>
-      <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#BFBFBF"/>
-      <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#BFBFBF"/>
-      <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#BFBFBF"/>
+      <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
     </Borders>
   </Style>
   <Style ss:ID="DataRight">
-    <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>
+    <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
     <Font ss:FontName="Calibri" ss:Size="10"/>
     <Borders>
-      <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#BFBFBF"/>
-      <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#BFBFBF"/>
-      <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#BFBFBF"/>
-    </Borders>
-  </Style>
-  <Style ss:ID="DataRightGreen">
-    <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>
-    <Font ss:FontName="Calibri" ss:Size="10" ss:Color="#00B050"/>
-    <Borders>
-      <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#BFBFBF"/>
-      <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#BFBFBF"/>
-      <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#BFBFBF"/>
-    </Borders>
-  </Style>
-  <Style ss:ID="DataRightBlue">
-    <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>
-    <Font ss:FontName="Calibri" ss:Size="10" ss:Color="#4472C4"/>
-    <Borders>
-      <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#BFBFBF"/>
-      <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#BFBFBF"/>
-      <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#BFBFBF"/>
-    </Borders>
-  </Style>
-  <Style ss:ID="DataRightYellow">
-    <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>
-    <Font ss:FontName="Calibri" ss:Size="10" ss:Color="#FFC000"/>
-    <Borders>
-      <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#BFBFBF"/>
-      <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#BFBFBF"/>
-      <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#BFBFBF"/>
-    </Borders>
-  </Style>
-  <Style ss:ID="DataRightPurple">
-    <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>
-    <Font ss:FontName="Calibri" ss:Size="10" ss:Color="#7030A0"/>
-    <Borders>
-      <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#BFBFBF"/>
-      <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#BFBFBF"/>
-      <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#BFBFBF"/>
+      <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
     </Borders>
   </Style>
   <Style ss:ID="TotalRow">
-    <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>
+    <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
     <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#FFFFFF"/>
-    <Interior ss:Color="#FF6B6B" ss:Pattern="Solid"/>
+    <Interior ss:Color="#00B050" ss:Pattern="Solid"/>
     <Borders>
       <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="2"/>
       <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
@@ -208,7 +298,7 @@ export default function CrossSalesTab() {
   <Style ss:ID="TotalLabel">
     <Alignment ss:Horizontal="Left" ss:Vertical="Center"/>
     <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#FFFFFF"/>
-    <Interior ss:Color="#FF6B6B" ss:Pattern="Solid"/>
+    <Interior ss:Color="#00B050" ss:Pattern="Solid"/>
     <Borders>
       <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="2"/>
       <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
@@ -217,34 +307,123 @@ export default function CrossSalesTab() {
     </Borders>
   </Style>
 </Styles>
-<Worksheet ss:Name="Çapraz Satış Raporu">
-<Table ss:DefaultColumnWidth="80" ss:DefaultRowHeight="18">
-  <Column ss:Index="1" ss:Width="180"/>
-  <Column ss:Index="2" ss:Width="70"/>
-  <Column ss:Index="3" ss:Width="70"/>
-  <Column ss:Index="4" ss:Width="80"/>
-  <Column ss:Index="5" ss:Width="90"/>
-  <Column ss:Index="6" ss:Width="80"/>
-  <Column ss:Index="7" ss:Width="80"/>
-  <Column ss:Index="8" ss:Width="80"/>
-  <Column ss:Index="9" ss:Width="80"/>
-  <Column ss:Index="10" ss:Width="80"/>
+<Worksheet ss:Name="Capraz Satis Raporu">
+<Table ss:DefaultColumnWidth="100" ss:DefaultRowHeight="22">
+  <Column ss:Width="140"/>
+  <Column ss:Width="80"/>
+  <Column ss:Width="60"/>
+  <Column ss:Width="100"/>
+  <Column ss:Width="100"/>
+  <Column ss:Width="100"/>
+  <Column ss:Width="100"/>
+  <Column ss:Width="100"/>
+  <Column ss:Width="100"/>
+  <Column ss:Width="100"/>
   
-  <!-- BAŞLIK -->
-  <Row ss:Height="30">
-    <Cell ss:MergeAcross="5" ss:StyleID="Title"><Data ss:Type="String">ÇAPRAZ SATIŞ RAPORU - ${kasaName}</Data></Cell>
-    <Cell ss:MergeAcross="1" ss:StyleID="TitleInfo"><Data ss:Type="String">${userName}</Data></Cell>
-    <Cell ss:MergeAcross="1" ss:StyleID="TitleInfo"><Data ss:Type="String">${currentDate}</Data></Cell>
+  <!-- BASLIK -->
+  <Row ss:Height="35">
+    <Cell ss:MergeAcross="9" ss:StyleID="Title"><Data ss:Type="String">CAPRAZ SATIS RAPORU - ${kasaName} - ${userName} - ${currentDate}</Data></Cell>
   </Row>
-  <Row ss:Height="8"></Row>
+  <Row ss:Height="10"></Row>
   
-  <!-- TABLO BAŞLIKLARI -->
+  <!-- KUR VE Z RAPOR PANELLERI YAN YANA -->
+  <!-- Panel Basliklari -->
+  <Row ss:Height="25">
+    <Cell ss:MergeAcross="1" ss:StyleID="PanelHeaderYellow"><Data ss:Type="String">GUNLUK KURLAR</Data></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
+    <Cell ss:MergeAcross="2" ss:StyleID="PanelHeaderGreen"><Data ss:Type="String">Z RAPOR</Data></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
+  </Row>
+  
+  <!-- Satir 1: Kur USD / Z-KK -->
+  <Row ss:Height="24">
+    <Cell ss:StyleID="PanelLabel"><Data ss:Type="String">USD Kuru</Data></Cell>
+    <Cell ss:StyleID="PanelValue"><Data ss:Type="String">${usdRate.toFixed(4)} TL</Data></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="ZRaporLabel"><Data ss:Type="String">Kredi Karti (TL)</Data></Cell>
+    <Cell ss:MergeAcross="1" ss:StyleID="ZRaporValue"><Data ss:Type="String">${totals.kkTl.toFixed(2)} TL</Data></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
+  </Row>
+  
+  <!-- Satir 2: Kur EUR / Z-Nakit TL -->
+  <Row ss:Height="24">
+    <Cell ss:StyleID="PanelLabel"><Data ss:Type="String">EUR Kuru</Data></Cell>
+    <Cell ss:StyleID="PanelValue"><Data ss:Type="String">${eurRate.toFixed(4)} TL</Data></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="ZRaporLabel"><Data ss:Type="String">Nakit TL</Data></Cell>
+    <Cell ss:MergeAcross="1" ss:StyleID="ZRaporValue"><Data ss:Type="String">${totals.cashTl.toFixed(2)} TL</Data></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
+  </Row>
+  
+  <!-- Satir 3: bos / Z-Nakit USD -->
+  <Row ss:Height="24">
+    <Cell ss:MergeAcross="1" ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="ZRaporLabel"><Data ss:Type="String">Nakit USD</Data></Cell>
+    <Cell ss:MergeAcross="1" ss:StyleID="ZRaporValue"><Data ss:Type="String">${totals.cashUsd.toFixed(2)} $</Data></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
+  </Row>
+  
+  <!-- Satir 4: bos / Z-Nakit EUR -->
+  <Row ss:Height="24">
+    <Cell ss:MergeAcross="1" ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="ZRaporLabel"><Data ss:Type="String">Nakit EUR</Data></Cell>
+    <Cell ss:MergeAcross="1" ss:StyleID="ZRaporValue"><Data ss:Type="String">${totals.cashEur.toFixed(2)} EUR</Data></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
+  </Row>
+  
+  <!-- Satir 5: bos / Z-Toplam Nakit -->
+  <Row ss:Height="24">
+    <Cell ss:MergeAcross="1" ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="ZRaporLabelBold"><Data ss:Type="String">TOPLAM NAKIT (TL)</Data></Cell>
+    <Cell ss:MergeAcross="1" ss:StyleID="ZRaporValueBold"><Data ss:Type="String">${cashTlTotal.toFixed(2)} TL</Data></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
+  </Row>
+  
+  <!-- Satir 6: Z Rapor Genel Toplam -->
+  <Row ss:Height="28">
+    <Cell ss:MergeAcross="1" ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="ZRaporGrandLabel"><Data ss:Type="String">GENEL TOPLAM (TL)</Data></Cell>
+    <Cell ss:MergeAcross="1" ss:StyleID="ZRaporGrandValue"><Data ss:Type="String">${grandTotal.toFixed(2)} TL</Data></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
+    <Cell ss:StyleID="Empty"></Cell>
+  </Row>
+  
+  <Row ss:Height="15"></Row>
+  
+  <!-- CAPRAZ SATIS TABLOSU -->
+  <Row ss:Height="25">
+    <Cell ss:MergeAcross="9" ss:StyleID="SectionHeader"><Data ss:Type="String">CAPRAZ SATIS PANOSU</Data></Cell>
+  </Row>
   <Row ss:Height="20">
     <Cell ss:StyleID="TableHeaderLeft"><Data ss:Type="String">Paket</Data></Cell>
-    <Cell ss:StyleID="TableHeader"><Data ss:Type="String">Yetişkin</Data></Cell>
-    <Cell ss:StyleID="TableHeader"><Data ss:Type="String">Çocuk</Data></Cell>
+    <Cell ss:StyleID="TableHeader"><Data ss:Type="String">Yetiskin</Data></Cell>
+    <Cell ss:StyleID="TableHeader"><Data ss:Type="String">Cocuk</Data></Cell>
     <Cell ss:StyleID="TableHeader"><Data ss:Type="String">Para Birimi</Data></Cell>
-    <Cell ss:StyleID="TableHeader"><Data ss:Type="String">Ödeme Tipi</Data></Cell>
+    <Cell ss:StyleID="TableHeader"><Data ss:Type="String">Odeme Tipi</Data></Cell>
     <Cell ss:StyleID="TableHeader"><Data ss:Type="String">Toplam</Data></Cell>
     <Cell ss:StyleID="TableHeader"><Data ss:Type="String">KK (TL)</Data></Cell>
     <Cell ss:StyleID="TableHeader"><Data ss:Type="String">Nakit (TL)</Data></Cell>
@@ -252,14 +431,11 @@ export default function CrossSalesTab() {
     <Cell ss:StyleID="TableHeader"><Data ss:Type="String">Nakit (EUR)</Data></Cell>
   </Row>
   
-  <!-- VERİLER -->
   ${dataRows}
   
   <Row ss:Height="5"></Row>
-  
-  <!-- TOPLAMLAR -->
   <Row ss:Height="25">
-    <Cell ss:MergeAcross="5" ss:StyleID="TotalLabel"><Data ss:Type="String">TOPLAM ÖZET</Data></Cell>
+    <Cell ss:MergeAcross="5" ss:StyleID="TotalLabel"><Data ss:Type="String">TOPLAM OZET</Data></Cell>
     <Cell ss:StyleID="TotalRow"><Data ss:Type="Number">${totals.kkTl.toFixed(2)}</Data></Cell>
     <Cell ss:StyleID="TotalRow"><Data ss:Type="Number">${totals.cashTl.toFixed(2)}</Data></Cell>
     <Cell ss:StyleID="TotalRow"><Data ss:Type="Number">${totals.cashUsd.toFixed(2)}</Data></Cell>
@@ -272,7 +448,7 @@ export default function CrossSalesTab() {
     const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `Capraz_Satis_${currentDate.replace(/\./g, '-')}.xls`;
+    link.download = `Capraz_Satis_${kasaName.replace(/\s/g, '_')}_${currentDate.replace(/\./g, '-')}.xls`;
     link.click();
     URL.revokeObjectURL(link.href);
   };
