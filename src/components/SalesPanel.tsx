@@ -829,15 +829,39 @@ export default function SalesPanel({ usdRate = 30, eurRate = 50.4877, onSalesUpd
               <label className="block text-xs text-gray-400 mb-1">Paket</label>
               <select
                 value={formData.packageId}
-                onChange={(e) => setFormData({ ...formData, packageId: e.target.value })}
+                onChange={(e) => {
+                  const selectedPkg = INITIAL_PACKAGES.find(p => p.id === e.target.value);
+                  const isCross = selectedPkg?.category === 'Çapraz';
+                  setFormData({ 
+                    ...formData, 
+                    packageId: e.target.value,
+                    isCrossSale: isCross
+                  });
+                }}
                 className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded text-white text-sm"
               >
                 <option value="">Paket Seçiniz...</option>
-                {INITIAL_PACKAGES.map((pkg) => (
-                  <option key={pkg.id} value={pkg.id}>
-                    {pkg.name} ({pkg.currency})
-                  </option>
-                ))}
+                <optgroup label="── MÜNFERİT ──" className="text-blue-400 font-bold">
+                  {INITIAL_PACKAGES.filter(pkg => pkg.category === 'Münferit').map((pkg) => (
+                    <option key={pkg.id} value={pkg.id}>
+                      {pkg.name} ({pkg.currency})
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="── ÇAPRAZ ──" className="text-orange-400 font-bold">
+                  {INITIAL_PACKAGES.filter(pkg => pkg.category === 'Çapraz').map((pkg) => (
+                    <option key={pkg.id} value={pkg.id}>
+                      {pkg.name} ({pkg.currency})
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="── ACENTA ──" className="text-purple-400 font-bold">
+                  {INITIAL_PACKAGES.filter(pkg => pkg.category === 'Acenta').map((pkg) => (
+                    <option key={pkg.id} value={pkg.id}>
+                      {pkg.name} ({pkg.currency})
+                    </option>
+                  ))}
+                </optgroup>
               </select>
             </div>
 
@@ -879,16 +903,16 @@ export default function SalesPanel({ usdRate = 30, eurRate = 50.4877, onSalesUpd
             
             <div>
               <label className="block text-xs text-gray-400 mb-1">Satış Türü</label>
-              <div className="flex items-center h-[42px] px-3 py-2 bg-gray-900 border border-gray-600 rounded">
+              <div className={`flex items-center h-[42px] px-3 py-2 border rounded ${formData.isCrossSale ? 'bg-orange-900/30 border-orange-600' : 'bg-gray-900 border-gray-600'}`}>
                 <input
                   type="checkbox"
                   id="crossSale"
                   checked={formData.isCrossSale}
-                  onChange={(e) => setFormData({ ...formData, isCrossSale: e.target.checked })}
-                  className="w-4 h-4 text-orange-600 bg-gray-900 border-gray-600 rounded focus:ring-orange-500"
+                  readOnly
+                  className="w-4 h-4 text-orange-600 bg-gray-900 border-gray-600 rounded cursor-not-allowed"
                 />
-                <label htmlFor="crossSale" className="ml-2 text-sm text-gray-300 cursor-pointer">
-                  Çapraz Satış
+                <label htmlFor="crossSale" className={`ml-2 text-sm cursor-default ${formData.isCrossSale ? 'text-orange-400 font-semibold' : 'text-gray-500'}`}>
+                  {formData.isCrossSale ? '✓ Çapraz Satış' : 'Normal Satış'}
                 </label>
               </div>
             </div>
