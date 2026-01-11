@@ -4,6 +4,7 @@ import { Save, Mail, Plus, Trash2 } from 'lucide-react';
 interface PaxEntry {
   id: string;
   category: string;
+  type: 'ACENTE' | 'MÜNFERİT' | 'SİNEMA';
   adult: number;
   child: number;
   timestamp: string;
@@ -76,6 +77,7 @@ export default function AquariumTab() {
   const [paxEntries, setPaxEntries] = useState<PaxEntry[]>([]);
   const [formData, setFormData] = useState({
     category: '',
+    type: 'ACENTE' as 'ACENTE' | 'MÜNFERİT' | 'SİNEMA',
     adult: '',
     child: '',
   });
@@ -83,15 +85,24 @@ export default function AquariumTab() {
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const categories = ['Müşteridi Panosu', 'Kasa', 'Diğer', ...AGENCIES, ...MUNFERIT_CATEGORIES].sort();
-
-  const handleAddEntry = () => {
-    if (!formData.category || !formData.adult || !formData.child) {
-      alert('Lütfen tüm alanları doldurun');
-      return;
+  const getCategories = () => {
+    if (formData.type === 'ACENTE') {
+      return ['Müşteridi Panosu', 'Kasa', ...AGENCIES].sort();
+    } else if (formData.type === 'MÜNFERİT') {
+      return MUNFERIT_CATEGORIES.sort();
+    } else {
+      return ['Satılan Paket'];
     }
+  };
 
-    const newEntry: PaxEntry = {
+  constype: formData.type,
+      adult: parseInt(formData.adult),
+      child: parseInt(formData.child),
+      timestamp: new Date().toLocaleString('tr-TR'),
+    };
+
+    setPaxEntries([...paxEntries, newEntry]);
+    setFormData({ ...formData,y: PaxEntry = {
       id: Date.now().toString(),
       category: formData.category,
       adult: parseInt(formData.adult),
@@ -118,11 +129,10 @@ export default function AquariumTab() {
     );
   };
 
-  const getCategoryTotals = () => {
-    const categoryMap: Record<string, { adult: number; child: number }> = {};
+  const getCategoryTotals = () => {; type: string }> = {};
     paxEntries.forEach((entry) => {
       if (!categoryMap[entry.category]) {
-        categoryMap[entry.category] = { adult: 0, child: 0 };
+        categoryMap[entry.category] = { adult: 0, child: 0, type: entry.type };
       }
       categoryMap[entry.category].adult += entry.adult;
       categoryMap[entry.category].child += entry.child;
@@ -130,31 +140,96 @@ export default function AquariumTab() {
     return categoryMap;
   };
 
-  const handleSendEmail = () => {
-    if (!email) {
-      alert('Lütfen e-posta adresi girin');
-      return;
-    }
+  const getTypeGroupedTotals = () => {
+    const grouped: Record<string, { adult: number; child: number; entries: Array<{ category: string; adult: number; child: number }> }> = {
+      ACENTE: { adult: 0, child: 0, entries: [] },
+      MÜNFERİT: { adult: 0, child: 0, entries: [] },
+      SİNEMA: { adult: 0, child: 0, entries: [] },
+    };
 
-    const totals = getTotals();
-    const categoryTotals = getCategoryTotals();
+    const typeGrouped = getTypeGroupedTotals();
 
     // Email gönderme simülasyonu
     const emailBody = `
-Günlük Akvaryum PAX Raporu
+WİLDPARK GÜNLÜK MÜNFERİT ve ACENTE
 Tarih: ${new Date().toLocaleDateString('tr-TR')}
 
-Kategori Bazında:
-${Object.entries(categoryTotals)
-  .map(
-    ([cat, data]) =>
-      `${cat}: Yetişkin: ${data.adult}, Çocuk: ${data.child}, Toplam: ${data.adult + data.child}`
-  )
-  .join('\n')}
+═══════════════════════════════════════════════════════════
+AKVARYUM ACENTE PAX
+═══════════════════════════════════════════════════════════
+${typeGrouped.ACENTE.entries.length > 0 
+  ? typeGrouped.ACENTE.entries.map(e => 
+      `${e.category.padEnd(40)} | Yetişkin: ${e.adult.toString().padStart(3)} | Çocuk: ${e.child.toString().padStart(3)}`
+    ).join('\n')
+  : 'Veri yok'
+}
+───────────────────────────────────────────────────────────
+TOPLAM: Yetişkin: ${typeGrouped.ACENTE.adult} | Çocuk: ${typeGrouped.ACENTE.child}
 
-GENEL TOPLAM:
+═══════════════════════════════════════════════════════════
+AKVARYUM MÜNFERİT PAX
+═══════════════════════════════════════════════════════════
+${typeGrouped.MÜNFERİT.entries.length > 0
+  ? typeGrouped.MÜNFERİT.entries.map(e =>
+      `${e.category.padEnd(40)} | Yetişkin: ${e.adult.toString().padStart(3)} | Çocuk: ${e.child.toString().padStart(3)}`
+    ).join('\n')
+  : 'Veri yok'
+}
+───────────────────────────────────────────────────────────
+TOPLAM: Yetişkin: ${typeGrouped.MÜNFERİT.adult} | Çocuk: ${typeGrouped.MÜNFERİT.child}
+
+═══════════════════════════════════════════════════════════
+  const typeGrouped = getTypeGroupedTotals();
+
+  return (
+    <div className="p-2 sm:p-4 space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h2 className="text-lg font-bold text-white">WİLDPARK Günlük Münferit ve Acente Raporuk: ${e.child.toString().padStart(3)}`
+    ).join('\n')
+  : 'Veri yok'
+}
+───────────────────────────────────────────────────────────
+TOPLAM: Yetişkin: ${typeGrouped.SİNEMA.adult} | Çocuk: ${typeGrouped.SİNEMA.child}
+
+═══════════════════════════════════════════════════════════
+GENEL TOPLAM PAX
 Yetişkin: ${totals.adult}
 Çocuk: ${totals.child}
+Toplam: ${totals.total}
+═══════════════════════════════════════════════════════════s();
+    const categoryTotals = getCategoryTotals();5 gap-3">
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Tip</label>
+            <select
+              value={formData.type}
+              onChange={(e) => setFormData({ ...formData, type: e.target.value as any, category: '' })}
+              className="w-full px-3 py-2 bg-gray-800/50 border border-gray-700 rounded text-white text-sm"
+            >
+              <option value="ACENTE">Acente</option>
+              <option value="MÜNFERİT">Münferit</option>
+              <option value="SİNEMA">Sinema</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">
+              {formData.type === 'ACENTE' ? 'Acenta Adı' : formData.type === 'MÜNFERİT' ? 'Paket/Kategori' : 'Satılan Paket'}
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={formData.category}
+                onChange={(e) => {
+                  setFormData({ ...formData, category: e.target.value });
+                  setSearchTerm(e.target.value);
+                }}
+                onFocus={() => setSearchTerm(formData.category)}
+                placeholder="Ara veya manuel gir..."
+                className="w-full px-3 py-2 bg-gray-800/50 border border-gray-700 rounded text-white text-sm"
+                list={`${formData.type}-list`}
+              />
+              <datalist id={`${formData.type}-list`}>
+                {getCategories()
 Toplam PAX: ${totals.total}
     `;
 
@@ -202,28 +277,107 @@ Toplam PAX: ${totals.total}
                 className="w-full px-3 py-2 bg-gray-800/50 border border-gray-700 rounded text-white text-sm"
                 list="agencies-list"
               />
-              <datalist id="agencies-list">
-                {categories
-                  .filter((cat) => cat.toLowerCase().includes(searchTerm.toLowerCase()))
-                  .map((cat) => (
-                    <option key={cat} value={cat} />
-                  ))}
-              </datalist>
+          Tip Bazında Özet - 3 Kolon */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* ACENTE */}
+        <div className="bg-blue-900/20 backdrop-blur-md rounded-lg border border-blue-700/50 p-4">
+          <h3 className="text-sm font-bold text-blue-300 mb-3 flex items-center justify-between">
+            <span>🏢 AKVARYUM ACENTE</span>
+            <span className="text-xs bg-blue-600/30 px-2 py-1 rounded">{typeGrouped.ACENTE.entries.length}</span>
+          </h3>
+          <div className="space-y-2 max-h-40 overflow-y-auto">
+            {typeGrouped.ACENTE.entries.map((entry, idx) => (
+              <div key={idx} className="text-xs bg-blue-900/20 rounded p-2">
+                <p className="font-semibold text-white truncate">{entry.category}</p>
+                <div className="flex justify-between text-gray-400 mt-1">
+                  <span>Y: {entry.adult}</span>
+                  <span>Ç: {entry.child}</span>
+                  <span className="text-blue-300">T: {entry.adult + entry.child}</span>
+                </div>
+              </div>
+            ))}
+            {typeGrouped.ACENTE.entries.length === 0 && (
+              <p className="text-xs text-gray-500 text-center py-4">Veri yok</p>
+            )}
+          </div>
+          <div className="mt-3 pt-3 border-t border-blue-700/30">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-400">Toplam:</span>
+              <span className="text-blue-300 font-bold">{typeGrouped.ACENTE.adult + typeGrouped.ACENTE.child} PAX</span>
             </div>
           </div>
+        </div>
 
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">Yetişkin Sayısı</label>
-            <input
-              type="number"
-              min="0"
-              value={formData.adult}
-              onChange={(e) => setFormData({ ...formData, adult: e.target.value })}
-              className="w-full px-3 py-2 bg-gray-800/50 border border-gray-700 rounded text-white text-sm"
-              placeholder="0"
-            />
+        {/* MÜNFERİT */}
+        <div className="bg-purple-900/20 backdrop-blurTip</th>
+                  <th className="px-3 py-2 text-left">Kategori</th>
+                  <th className="px-3 py-2 text-center">Yetişkin</th>
+                  <th className="px-3 py-2 text-center">Çocuk</th>
+                  <th className="px-3 py-2 text-center">Toplam</th>
+                  <th className="px-3 py-2 text-center">İşlem</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paxEntries.map((entry) => (
+                  <tr key={entry.id} className="border-b border-gray-800 hover:bg-gray-800/30">
+                    <td className="px-3 py-2 text-gray-400">{entry.timestamp}</td>
+                    <td className="px-3 py-2">
+                      <span className={`text-xs px-2 py-1 rounded ${
+                        entry.type === 'ACENTE' ? 'bg-blue-600/30 text-blue-300' :
+                        entry.type === 'MÜNFERİT' ? 'bg-purple-600/30 text-purple-300' :
+                        'bg-green-600/30 text-green-300'
+                      }`}>
+                        {entry.type}
+                      </span>
+                    
+                  <span>Ç: {entry.child}</span>
+                  <span className="text-purple-300">T: {entry.adult + entry.child}</span>
+                </div>
+              </div>
+            ))}
+            {typeGrouped.MÜNFERİT.entries.length === 0 && (
+              <p className="text-xs text-gray-500 text-center py-4">Veri yok</p>
+            )}
           </div>
+          <div className="mt-3 pt-3 border-t border-purple-700/30">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-400">Toplam:</span>
+              <span className="text-purple-300 font-bold">{typeGrouped.MÜNFERİT.adult + typeGrouped.MÜNFERİT.child} PAX</span>
+            </div>
+          </div>
+        </div>
 
+        {/* SİNEMA */}
+        <div className="bg-green-900/20 backdrop-blur-md rounded-lg border border-green-700/50 p-4">
+          <h3 className="text-sm font-bold text-green-300 mb-3 flex items-center justify-between">
+            <span>🎬 SİNEMA</span>
+            <span className="text-xs bg-green-600/30 px-2 py-1 rounded">{typeGrouped.SİNEMA.entries.length}</span>
+          </h3>
+          <div className="space-y-2 max-h-40 overflow-y-auto">
+            {typeGrouped.SİNEMA.entries.map((entry, idx) => (
+              <div key={idx} className="text-xs bg-green-900/20 rounded p-2">
+                <p className="font-semibold text-white truncate">{entry.category}</p>
+                <div className="flex justify-between text-gray-400 mt-1">
+                  <span>Y: {entry.adult}</span>
+                  <span>Ç: {entry.child}</span>
+                  <span className="text-green-300">T: {entry.adult + entry.child}</span>
+                </div>
+              </div>
+            ))}
+            {typeGrouped.SİNEMA.entries.length === 0 && (
+              <p className="text-xs text-gray-500 text-center py-4">Veri yok</p>
+            )}
+          </div>
+          <div className="mt-3 pt-3 border-t border-green-700/30">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-400">Toplam:</span>
+              <span className="text-green-300 font-bold">{typeGrouped.SİNEMA.adult + typeGrouped.SİNEMA.child} PAX</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Eski Kategori Bazında Özet - Kaldırıldı */}
           <div>
             <label className="block text-xs text-gray-400 mb-1">Çocuk Sayısı</label>
             <input
