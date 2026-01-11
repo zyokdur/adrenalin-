@@ -46,6 +46,32 @@ const AGENCIES = [
   'TRAVELLER ADVANTAGE AQUA+CİNEMA', 'NEDIM TUGEN OKUL AQUA+SNOW+XD', 'WORLD OF LUXURY FULL PLUS KIŞ'
 ];
 
+const MUNFERIT_CATEGORIES = [
+  'MUNFERIT MEGA',
+  'MUNFERİT AQUA+XD',
+  'MUNFERIT 4 LU PAKET(A+KD+WP+F2F)',
+  'MULTIPASS MUNFERIT 4 LU PAKET(A+XD+WP+F2F)',
+  'ENGELLİ 4 LÜ (A+KD+WP+F2F)',
+  'ENGELLİ AQUA+FACE İNDİRİMLİ',
+  'ENGELLİ PAKET MEGA',
+  'GAZI VE ŞEHİT AQUA+FACE2FACE PAKET',
+  'GAZI VE ŞEHİT 4LU PAKET (A+KD+WP+F2F)',
+  'GAZI VE ŞEHİT MEGA',
+  'MUNFERIT KAMPANYA RESIM YARISMASI MEGA IND',
+  'MUNFERIT KAMPANYA BIM MEGA IND',
+  'MUNFERIT KAMPANYA BIM AQUA+F2F IND',
+  'MUNFERIT KAMPANYA BIM PERSONEL MEGA',
+  'BIM BIRLESIK MAGAZA COMP MEGA',
+  'MUNFERIT KAMPANYA TURK KAMU-SEN 2\'Lİ AQUA+F2F',
+  'KURUM INDIRIMI AQUA+FACE',
+  'KURUM INDIRIMI PAKET MEGA',
+  'KURUM INDIRIMI 4 LU PAKET (A+SW+WP+F2F)',
+  'ALYA MEGA İNDİRİMİ',
+  'ALYA PERSONEL MEGA',
+  'ONLİNE MEGA',
+  'NEDIM TUGEN OKUL AQUA+SNOW+XD'
+];
+
 export default function AquariumTab() {
   const [paxEntries, setPaxEntries] = useState<PaxEntry[]>([]);
   const [formData, setFormData] = useState({
@@ -57,7 +83,7 @@ export default function AquariumTab() {
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const categories = ['Müşteridi Panosu', 'Kasa', 'Diğer', ...AGENCIES].sort();
+  const categories = ['Müşteridi Panosu', 'Kasa', 'Diğer', ...AGENCIES, ...MUNFERIT_CATEGORIES].sort();
 
   const handleAddEntry = () => {
     if (!formData.category || !formData.adult || !formData.child) {
