@@ -80,7 +80,10 @@ export default function AppLayout({ activeTab, onTabChange, children }: LayoutPr
             <LogOut className="w-4 h-4" />
             Çıkış
           </button>
-        </Overlay for mobile */}
+        </div>
+      </div>
+
+      {/* Overlay for mobile */}
       {mobileMenuOpen && (
         <div
           className="md:hidden fixed inset-0 bg-black/50 z-30"
@@ -93,9 +96,6 @@ export default function AppLayout({ activeTab, onTabChange, children }: LayoutPr
         <div className="pt-16 md:pt-0">
           {children}
         </div>
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        {children}
       </div>
     </div>
   );
