@@ -4,7 +4,7 @@
  * Aktif kasa ID'sini döndürür
  */
 export function getActiveKasaId(): string {
-  return localStorage.getItem('activeKasaId') || 'default';
+  return localStorage.getItem('currentKasaId') || 'default';
 }
 
 /**
