@@ -9,6 +9,43 @@ interface PaxEntry {
   timestamp: string;
 }
 
+const AGENCIES = [
+  'ADLER TURIZM', 'ATLAS TOUR', 'ANTALYA WAVES TRAVEL', 'ALEXA TRAVEL', 'ANCHWOOD TOUR',
+  'ANASON TRAVEL', 'ARGOS KUYUM', 'AYAX GLOBAL', 'ANTALYUM TOUR', 'AYBA TUNGA TURIZM',
+  'AIDA TUR', 'ALAPAN TRAVEL', 'AMER TRAVEL', 'AMBROSSIA TRAVEL', 'ANTALYA FULL TOUR',
+  'AKIN VIP TRANSFER', 'AKTEON TURIZM', 'ATASAM HOLIDAY TRAVEL', 'BIGBAM TRAVEL', 'BUSTANI TURIZM',
+  'BEST SERVICE', 'BENTOUR', 'BİLET.COM', 'BILET ANTALYA - ERS YAZALIM', 'BOOKERS TRAVEL',
+  'BUNA TURCIA TURIZM', 'BLUEMANIA', 'BOOKLINE TRAVEL', 'BTS TUR', 'BOOXIMUM TURIZM',
+  'BIJONS TOUR', 'CHRISTIAN ITS TRAVEL', 'CIP TRAVEL', 'CANDID TOUR', 'CRAFT TRAVEL',
+  'CATT TOUR', 'CASTOR TRAVEL', 'COL TUR', 'COOL TUR', 'CORRECT', 'CORENDON',
+  'CONSUL TRAVEL', 'COLMENYA TRAVEL', 'COYAV TRAVEL', 'CELEX TURIZM', 'DISCOVER TURKEY',
+  'DIANA', 'DORAK SIGNATURE', 'DESTINATION', 'DS (TUI)', 'DEHA', 'DOPAMIN TOUR',
+  'DREAMBIG HIGH CLASS TASIMACILIK', 'DIAMOND VOYAGE TRAVEL', 'FOUR SEASONS TRAVEL', 'FUN & SUN',
+  'FABL TOURISM', 'FIT TOUR', 'FIBULA TRAVEL', 'FABIAN TOUR', 'FAIRDAY TURIZM',
+  'FIBAR TUR', 'FEZA TURIZM', 'FLUJO TOUR', 'GINZA TRAVEL', 'GOLPON TRAVEL',
+  'GLORIA LIFE TOUR', 'GREEN NATURE TRAVEL', 'GEPARD TURIZM', 'GOKCEKOGLU TURIZM', 'GUVENBEY TURIZM',
+  'GTS HOLIDAY', 'ERGENEKON TOUR', 'ESKOL PINARIM TUR', 'ELIX TOUR', 'ETS TURIZM',
+  'EMA TOURS', 'EIA HOLIDAYS', 'ESIL BLUE TAVEL', 'HIERAPOLIS TURIZM', 'HANA TRAVEL',
+  'HEDEF DOĞA TURIZM', 'HABITAT VIP TRAVEL', 'HSC TRAVEL', 'HEAVENTOUR TUR', 'HARRA TRAVEL',
+  'HAYTUR', 'HEYSEM TOUR', 'HOLIDAYCE VIBES TURIZM', 'HAPPY ELAY TURIZM', 'HURKAN TOUR',
+  'HIGGS TOUR', 'HOLIDAY NB TOUR', 'HOMA TOUR', 'IBR TRAVEL', 'IHS TRAVEL AVRUPA',
+  'IHS TRAVEL BDT', 'INTOURIST-MOTUS AVRUPA', 'INTOURIST-MOTUS', 'INTERHOL SERVİCES', 'IKAROS TURIZM',
+  'IMPULSE TUR', 'IRELS TRAVEL', 'JOLLY TOUR', 'JAZZ TOUR', 'JKR TURIZM',
+  'KALANIT TRAVEL', 'KARTACA TURIZM', 'KARNAK TRAVEL', 'KARMET TRAVEL', 'KHARON TRAVEL',
+  'KEDALYA TURIZM', 'KADEN GOLF TRAVEL', 'KING ALP REISEN', 'KING OF ALAIYE TRAVEL', 'KIRKGOZHAN TRAVEL',
+  'KAFECAN', 'KORAL TRAVEL', 'KPKZ TRAVEL', 'LOTI TOUR', 'LIGHT TOURS – KAYALAR',
+  'LUNA BLU TRAVEL', 'LITORE SUN TRAVEL', 'MİRACLE CONCIERGE', 'MUNA TOSUN TRAVEL', 'MY FRIEND TRAVEL',
+  'MERCAN TURIZM', 'MUHIP TURIZM', 'ANTALYA AQUARIUM AKAY TOUR YILBASI MEGA', 'ANTALYA AQUARIUM KOKARTLI REHBER MEGA',
+  'ANTALYA AQUARIUM BASIN KART MEGA', 'ATILGAN AKVARYUM MEGA', 'AKAY TURIZM AVRUPA', 'ADONIS ISTANBUL',
+  'ANEX', 'ANEX AVRUPA', 'AKDEM TRAVEL', 'AVIUM TOURS', 'ALL TOURS',
+  'ANEX IC PAZAR', 'AKUAMARINE TRAVEL', 'ADANUS TURIZM', 'ARAZ ARAN TRAVEL', 'AZRA TOUR',
+  'AGATHON TRAVEL', 'AZAD TURIZM', 'ASOS TURIZM', 'ASI TURIZM', 'ANB TOUR',
+  'ARENA SPORT', 'AHLAN ANTALYA', 'ODEON', 'TRAVELLER ADVANTAGE PAC MEGA', 'TRAVELLER ADVANTAGE AQUA+FACE',
+  'TRAVELLER TRY MEGA', 'TRAVELLER TRY AQUA+FACE', 'ONLİNE VİSİTOR AKV +WİLD', 'ONLİNE MEGA',
+  'MUNFERIT ONLINE AQUA+WILD', 'MUNFERIT ONLINE MEGA', 'ONLINE IC AC MEGA', 'ONLINE AC IC AQUA+WILD',
+  'TRAVELLER ADVANTAGE AQUA+CİNEMA', 'NEDIM TUGEN OKUL AQUA+SNOW+XD', 'WORLD OF LUXURY FULL PLUS KIŞ'
+];
+
 export default function AquariumTab() {
   const [paxEntries, setPaxEntries] = useState<PaxEntry[]>([]);
   const [formData, setFormData] = useState({
@@ -18,8 +55,9 @@ export default function AquariumTab() {
   });
   const [email, setEmail] = useState('');
   const [showEmailModal, setShowEmailModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const categories = ['Acente', 'Müşteridi Panosu', 'Kasa', 'Diğer'];
+  const categories = ['Müşteridi Panosu', 'Kasa', 'Diğer', ...AGENCIES].sort();
 
   const handleAddEntry = () => {
     if (!formData.category || !formData.adult || !formData.child) {
@@ -124,19 +162,28 @@ Toplam PAX: ${totals.total}
         <h3 className="text-white font-bold mb-4">Yeni PAX Girişi</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div>
-            <label className="block text-xs text-gray-400 mb-1">Kategori</label>
-            <select
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              className="w-full px-3 py-2 bg-gray-800/50 border border-gray-700 rounded text-white text-sm"
-            >
-              <option value="">Seçiniz...</option>
-              {categories.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
+            <label className="block text-xs text-gray-400 mb-1">Acenta / Kategori</label>
+            <div className="relative">
+              <input
+                type="text"
+                value={formData.category}
+                onChange={(e) => {
+                  setFormData({ ...formData, category: e.target.value });
+                  setSearchTerm(e.target.value);
+                }}
+                onFocus={() => setSearchTerm(formData.category)}
+                placeholder="Acenta ara veya seç..."
+                className="w-full px-3 py-2 bg-gray-800/50 border border-gray-700 rounded text-white text-sm"
+                list="agencies-list"
+              />
+              <datalist id="agencies-list">
+                {categories
+                  .filter((cat) => cat.toLowerCase().includes(searchTerm.toLowerCase()))
+                  .map((cat) => (
+                    <option key={cat} value={cat} />
+                  ))}
+              </datalist>
+            </div>
           </div>
 
           <div>
