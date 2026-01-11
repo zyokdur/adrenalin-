@@ -1,6 +1,13 @@
 // Günlük veri yönetimi için utility fonksiyonlar
 
 /**
+ * Aktif kasa ID'sini döndürür
+ */
+export function getActiveKasaId(): string {
+  return localStorage.getItem('activeKasaId') || 'default';
+}
+
+/**
  * Bugünün tarihini YYYY-MM-DD formatında döndürür
  */
 export function getTodayDate(): string {
@@ -9,24 +16,26 @@ export function getTodayDate(): string {
 }
 
 /**
- * Günlük satış verilerini localStorage'a kaydeder
+ * Günlük satış verilerini localStorage'a kaydeder (KASA BAZLI)
  */
 export function saveDailySales(sales: any[]): void {
   const today = getTodayDate();
+  const kasaId = getActiveKasaId();
   const data = {
     date: today,
     sales: sales,
     savedAt: new Date().toISOString()
   };
-  localStorage.setItem('daily_sales', JSON.stringify(data));
+  localStorage.setItem(`daily_sales_${kasaId}`, JSON.stringify(data));
 }
 
 /**
- * Günlük satış verilerini localStorage'dan yükler
+ * Günlük satış verilerini localStorage'dan yükler (KASA BAZLI)
  * Tarih geçmişse boş array döner
  */
 export function loadDailySales(): any[] {
-  const data = localStorage.getItem('daily_sales');
+  const kasaId = getActiveKasaId();
+  const data = localStorage.getItem(`daily_sales_${kasaId}`);
   if (!data) return [];
   
   try {
@@ -35,7 +44,7 @@ export function loadDailySales(): any[] {
     
     // Tarih değişmişse eski verileri temizle
     if (parsed.date !== today) {
-      localStorage.removeItem('daily_sales');
+      localStorage.removeItem(`daily_sales_${kasaId}`);
       return [];
     }
     
@@ -73,23 +82,25 @@ export function loadExchangeRates(): { usd: number; eur: number } {
 }
 
 /**
- * Çapraz satışları kaydeder
+ * Çapraz satışları kaydeder (KASA BAZLI)
  */
 export function saveCrossSales(crossSales: any[]): void {
   const today = getTodayDate();
+  const kasaId = getActiveKasaId();
   const data = {
     date: today,
     crossSales: crossSales,
     savedAt: new Date().toISOString()
   };
-  localStorage.setItem('daily_cross_sales', JSON.stringify(data));
+  localStorage.setItem(`daily_cross_sales_${kasaId}`, JSON.stringify(data));
 }
 
 /**
- * Çapraz satışları yükler
+ * Çapraz satışları yükler (KASA BAZLI)
  */
 export function loadCrossSales(): any[] {
-  const data = localStorage.getItem('daily_cross_sales');
+  const kasaId = getActiveKasaId();
+  const data = localStorage.getItem(`daily_cross_sales_${kasaId}`);
   if (!data) return [];
   
   try {
@@ -98,7 +109,7 @@ export function loadCrossSales(): any[] {
     
     // Tarih değişmişse eski verileri temizle
     if (parsed.date !== today) {
-      localStorage.removeItem('daily_cross_sales');
+      localStorage.removeItem(`daily_cross_sales_${kasaId}`);
       return [];
     }
     

@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Share2, Download, FileSpreadsheet, Trash2 } from 'lucide-react';
-import { loadCrossSales, saveCrossSales } from '@/utils/dailyData';
+import { 
+  loadCrossSalesFromFirebase, 
+  saveCrossSalesToFirebase, 
+  subscribeCrossSales 
+} from '@/utils/firebaseSales';
 
 interface CrossSale {
   id: string;
@@ -18,27 +22,33 @@ interface CrossSale {
 }
 
 export default function CrossSalesTab() {
-  const [crossSales, setCrossSales] = useState<CrossSale[]>(loadCrossSales());
+  const [crossSales, setCrossSales] = useState<CrossSale[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // localStorage değişikliklerini dinle (SalesPanel'den eklenen çapraz satışlar için)
+  // Firebase'den çapraz satışları yükle
   useEffect(() => {
-    const handleStorageChange = () => {
-      setCrossSales(loadCrossSales());
+    const loadCrossSales = async () => {
+      setIsLoading(true);
+      const loaded = await loadCrossSalesFromFirebase();
+      setCrossSales(loaded);
+      setIsLoading(false);
     };
+    loadCrossSales();
     
-    // Her 1 saniyede localStorage'ı kontrol et (aynı pencerede storage eventi tetiklenmez)
-    const interval = setInterval(handleStorageChange, 1000);
+    // Real-time güncellemeleri dinle
+    const unsubscribe = subscribeCrossSales((updated) => {
+      setCrossSales(updated);
+    });
     
-    window.addEventListener('storage', handleStorageChange);
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      clearInterval(interval);
-    };
+    return () => unsubscribe();
   }, []);
 
+  // Çapraz satışlar değiştiğinde Firebase'e kaydet
   useEffect(() => {
-    saveCrossSales(crossSales);
-  }, [crossSales]);
+    if (!isLoading) {
+      saveCrossSalesToFirebase(crossSales);
+    }
+  }, [crossSales, isLoading]);
 
   const handleDelete = (id: string) => {
     setCrossSales(crossSales.filter(s => s.id !== id));

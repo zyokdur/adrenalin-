@@ -1,7 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, ShoppingCart, Download, FileSpreadsheet } from 'lucide-react';
 import { INITIAL_PACKAGES, type PackageItem } from '@/data/packages';
-import { loadDailySales, saveDailySales, loadCrossSales, saveCrossSales } from '@/utils/dailyData';
+import { 
+  saveSalesToFirebase, 
+  loadSalesFromFirebase, 
+  saveCrossSalesToFirebase, 
+  loadCrossSalesFromFirebase,
+  subscribeSales 
+} from '@/utils/firebaseSales';
 
 interface Sale {
   id: string;
@@ -28,8 +34,8 @@ interface AddSaleForm {
 }
 
 export default function SalesPanel({ usdRate = 30, eurRate = 50.4877, onSalesUpdate }: { usdRate: number; eurRate: number; onSalesUpdate?: (sales: Sale[]) => void }) {
-  // Günlük satışları localStorage'dan yükle
-  const [sales, setSales] = useState<Sale[]>(loadDailySales());
+  const [sales, setSales] = useState<Sale[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [formData, setFormData] = useState<AddSaleForm>({
     packageId: '',
@@ -39,13 +45,33 @@ export default function SalesPanel({ usdRate = 30, eurRate = 50.4877, onSalesUpd
     isCrossSale: false,
   });
   
-  // Satışlar değiştiğinde localStorage'a kaydet ve parent'ı güncelle
+  // Firebase'den satışları yükle
   useEffect(() => {
-    saveDailySales(sales);
-    if (onSalesUpdate) {
-      onSalesUpdate(sales);
+    const loadSales = async () => {
+      setIsLoading(true);
+      const loadedSales = await loadSalesFromFirebase();
+      setSales(loadedSales);
+      setIsLoading(false);
+    };
+    loadSales();
+    
+    // Real-time güncellemeleri dinle
+    const unsubscribe = subscribeSales((updatedSales) => {
+      setSales(updatedSales);
+    });
+    
+    return () => unsubscribe();
+  }, []);
+  
+  // Satışlar değiştiğinde Firebase'e kaydet
+  useEffect(() => {
+    if (!isLoading && sales.length >= 0) {
+      saveSalesToFirebase(sales);
+      if (onSalesUpdate) {
+        onSalesUpdate(sales);
+      }
     }
-  }, [sales, onSalesUpdate]);
+  }, [sales, isLoading, onSalesUpdate]);
 
   const calculateSaleDistribution = (
     amount: number,
@@ -114,10 +140,11 @@ export default function SalesPanel({ usdRate = 30, eurRate = 50.4877, onSalesUpd
       isCrossSale: formData.isCrossSale,
     };
 
-    // Çapraz satışsa, çapraz satış listesine de kaydet
+    // Çapraz satışsa, çapraz satış listesine de Firebase'e kaydet
     if (formData.isCrossSale) {
-      const crossSales = loadCrossSales();
-      saveCrossSales([...crossSales, newSale]);
+      loadCrossSalesFromFirebase().then(crossSales => {
+        saveCrossSalesToFirebase([...crossSales, newSale]);
+      });
     }
 
     setSales([...sales, newSale]);
