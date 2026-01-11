@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { DollarSign, TrendingUp, FileText, Wallet } from 'lucide-react';
 import SalesPanel from './SalesPanel';
 import { getKasaSettings, initializeKasaSettings } from '@/utils/kasaSettingsDB';
@@ -60,7 +60,7 @@ export default function DashboardTab() {
     );
   }
 
-  const handleSalesUpdate = (sales: any[]) => {
+  const handleSalesUpdate = useCallback((sales: any[]) => {
     const totals = {
       kkTl: sales.reduce((sum, s) => sum + s.kkTl, 0),
       cashTl: sales.reduce((sum, s) => sum + s.cashTl, 0),
@@ -68,7 +68,7 @@ export default function DashboardTab() {
       cashEur: sales.reduce((sum, s) => sum + s.cashEur, 0),
     };
     setSalesData(totals);
-  };
+  }, []);
   
   // Kur değiştiğinde kaydet
   const handleUsdRateChange = (value: number) => {

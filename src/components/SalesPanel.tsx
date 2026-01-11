@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Plus, Trash2, ShoppingCart, Download, FileSpreadsheet } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Plus, Trash2, ShoppingCart, Download, FileSpreadsheet, FileText } from 'lucide-react';
 import { INITIAL_PACKAGES, type PackageItem } from '@/data/packages';
 import { 
   saveSalesToFirebase, 
@@ -8,6 +8,8 @@ import {
   loadCrossSalesFromFirebase,
   subscribeSales 
 } from '@/utils/firebaseSales';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface Sale {
   id: string;
@@ -36,6 +38,12 @@ interface AddSaleForm {
 export default function SalesPanel({ usdRate = 30, eurRate = 50.4877, onSalesUpdate }: { usdRate: number; eurRate: number; onSalesUpdate?: (sales: Sale[]) => void }) {
   const [sales, setSales] = useState<Sale[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const onSalesUpdateRef = useRef(onSalesUpdate);
+  
+  // Keep ref updated
+  useEffect(() => {
+    onSalesUpdateRef.current = onSalesUpdate;
+  }, [onSalesUpdate]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [formData, setFormData] = useState<AddSaleForm>({
     packageId: '',
@@ -67,11 +75,11 @@ export default function SalesPanel({ usdRate = 30, eurRate = 50.4877, onSalesUpd
   useEffect(() => {
     if (!isLoading && sales.length >= 0) {
       saveSalesToFirebase(sales);
-      if (onSalesUpdate) {
-        onSalesUpdate(sales);
+      if (onSalesUpdateRef.current) {
+        onSalesUpdateRef.current(sales);
       }
     }
-  }, [sales, isLoading, onSalesUpdate]);
+  }, [sales, isLoading]);
 
   const calculateSaleDistribution = (
     amount: number,
@@ -640,160 +648,151 @@ export default function SalesPanel({ usdRate = 30, eurRate = 50.4877, onSalesUpd
     URL.revokeObjectURL(link.href);
   };
   
-  // HTML Export Function
-  const exportToHTML = () => {
+  // PDF Export Function - Minimal Modern Design
+  const exportToPDF = () => {
     const totals = getTotals();
     const currentDate = new Date().toLocaleDateString('tr-TR');
+    const session = JSON.parse(localStorage.getItem('userSession') || '{}');
+    const userName = session.personnel?.fullName || 'Kullanıcı';
+    const kasaName = session.kasa?.name || 'Kasa';
     
-    let html = `
-      <!DOCTYPE html>
-      <html lang="tr">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Satış Raporu - ${currentDate}</title>
-        <style>
-          body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            margin: 40px; 
-            background: #f5f5f5;
-          }
-          .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-          }
-          h1 { 
-            color: #1a1a1a; 
-            border-bottom: 3px solid #4CAF50;
-            padding-bottom: 10px;
-          }
-          .date { 
-            color: #666; 
-            margin-bottom: 20px;
-            font-size: 14px;
-          }
-          table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            margin: 20px 0;
-            background: white;
-          }
-          th { 
-            background: #2c3e50; 
-            color: white; 
-            padding: 12px; 
-            text-align: left;
-            font-weight: 600;
-          }
-          td { 
-            padding: 10px; 
-            border-bottom: 1px solid #ddd;
-          }
-          tr:hover { 
-            background: #f8f9fa;
-          }
-          .totals {
-            margin-top: 30px;
-            padding: 20px;
-            background: #ecf0f1;
-            border-radius: 5px;
-          }
-          .totals h2 {
-            color: #2c3e50;
-            margin-bottom: 15px;
-          }
-          .total-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #bdc3c7;
-          }
-          .total-item:last-child {
-            border-bottom: none;
-            font-weight: bold;
-            font-size: 1.1em;
-          }
-          .text-right { text-align: right; }
-          .text-center { text-align: center; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <h1>SATIŞ RAPORU</h1>
-          <div class="date">Tarih: ${currentDate}</div>
-          
-          <table>
-            <thead>
-              <tr>
-                <th>Paket</th>
-                <th class="text-center">Yetişkin</th>
-                <th class="text-center">Çocuk</th>
-                <th class="text-center">Para Birimi</th>
-                <th class="text-center">Ödeme Tipi</th>
-                <th class="text-right">Toplam</th>
-                <th class="text-right">KK(TL)</th>
-                <th class="text-right">Nakit(TL)</th>
-                <th class="text-right">Nakit(USD)</th>
-                <th class="text-right">Nakit(EUR)</th>
-              </tr>
-            </thead>
-            <tbody>
-    `;
+    // Kasa avanslarını localStorage'dan al
+    const kasaSettings = JSON.parse(localStorage.getItem(`kasaSettings_${session.kasa?.id}`) || '{}');
+    const advances = kasaSettings.advances || { tlAdvance: 0, usdAdvance: 0, eurAdvance: 0 };
     
-    sales.forEach(sale => {
-      html += `
-              <tr>
-                <td>${sale.packageName}</td>
-                <td class="text-center">${sale.adultQty}</td>
-                <td class="text-center">${sale.childQty}</td>
-                <td class="text-center">${sale.currency}</td>
-                <td class="text-center">${sale.paymentType}</td>
-                <td class="text-right">${sale.total.toFixed(2)}</td>
-                <td class="text-right">${sale.kkTl > 0 ? sale.kkTl.toFixed(2) : '-'}</td>
-                <td class="text-right">${sale.cashTl > 0 ? sale.cashTl.toFixed(2) : '-'}</td>
-                <td class="text-right">${sale.cashUsd > 0 ? sale.cashUsd.toFixed(2) : '-'}</td>
-                <td class="text-right">${sale.cashEur > 0 ? sale.cashEur.toFixed(2) : '-'}</td>
-              </tr>
-      `;
+    // Z Rapor hesaplamaları
+    const cashTlTotal = totals.cashTl + (totals.cashUsd * usdRate) + (totals.cashEur * eurRate);
+    const grandTotal = totals.kkTl + cashTlTotal;
+    const totalAdult = sales.reduce((sum, s) => sum + s.adultQty, 0);
+    const totalChild = sales.reduce((sum, s) => sum + s.childQty, 0);
+    
+    // Portrait A4 - daha kompakt
+    const doc = new jsPDF('portrait', 'mm', 'a4');
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 15;
+    
+    // === HEADER - Minimal ===
+    doc.setFillColor(31, 78, 121);
+    doc.rect(0, 0, pageWidth, 35, 'F');
+    
+    // Title
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('GUNLUK SATIS RAPORU', margin, 18);
+    
+    // Info line
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(180, 200, 220);
+    doc.text(`${kasaName}  •  ${userName}  •  ${currentDate}`, margin, 28);
+    
+    // === SUMMARY ROW - Tek satır ===
+    const summaryY = 45;
+    doc.setFillColor(250, 250, 250);
+    doc.rect(margin, summaryY, pageWidth - margin * 2, 20, 'F');
+    doc.setDrawColor(230, 230, 230);
+    doc.rect(margin, summaryY, pageWidth - margin * 2, 20, 'S');
+    
+    // Summary items inline
+    const itemWidth = (pageWidth - margin * 2) / 6;
+    const summaryItems = [
+      { label: 'AVANS', value: `${advances.tlAdvance.toFixed(0)} TL` },
+      { label: 'USD', value: `${usdRate.toFixed(2)} TL` },
+      { label: 'EUR', value: `${eurRate.toFixed(2)} TL` },
+      { label: 'PAX', value: `${totalAdult}Y + ${totalChild}C = ${totalAdult + totalChild}` },
+      { label: 'K.KARTI', value: `${totals.kkTl.toFixed(0)} TL` },
+      { label: 'TOPLAM', value: `${grandTotal.toFixed(0)} TL` },
+    ];
+    
+    summaryItems.forEach((item, i) => {
+      const x = margin + (itemWidth * i) + itemWidth / 2;
+      doc.setFontSize(7);
+      doc.setTextColor(120, 120, 120);
+      doc.text(item.label, x, summaryY + 7, { align: 'center' });
+      doc.setFontSize(10);
+      doc.setTextColor(45, 45, 45);
+      doc.setFont('helvetica', 'bold');
+      doc.text(item.value, x, summaryY + 15, { align: 'center' });
+      doc.setFont('helvetica', 'normal');
     });
     
-    html += `
-            </tbody>
-          </table>
-          
-          <div class="totals">
-            <h2>TOPLAM ÖZET</h2>
-            <div class="total-item">
-              <span>Kredi Kartı (TL):</span>
-              <span>${totals.kkTl.toFixed(2)} ₺</span>
-            </div>
-            <div class="total-item">
-              <span>Nakit (TL):</span>
-              <span>${totals.cashTl.toFixed(2)} ₺</span>
-            </div>
-            <div class="total-item">
-              <span>Nakit (USD):</span>
-              <span>${totals.cashUsd.toFixed(2)} $</span>
-            </div>
-            <div class="total-item">
-              <span>Nakit (EUR):</span>
-              <span>${totals.cashEur.toFixed(2)} €</span>
-            </div>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
+    // === TABLE - Kompakt ===
+    const tableData = sales.map(sale => [
+      sale.packageName,
+      `${sale.adultQty}`,
+      `${sale.childQty}`,
+      sale.paymentType === 'Kredi Kartı' ? 'KK' : 'Nakit',
+      `${sale.total.toFixed(0)} ${sale.currency}`,
+      sale.kkTl > 0 ? `${sale.kkTl.toFixed(0)}` : '-',
+      sale.cashTl > 0 ? `${sale.cashTl.toFixed(0)}` : '-',
+      sale.cashUsd > 0 ? `${sale.cashUsd.toFixed(0)}` : '-',
+      sale.cashEur > 0 ? `${sale.cashEur.toFixed(0)}` : '-',
+    ]);
     
-    const blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `satis_raporu_${currentDate.replace(/\./g, '_')}.html`;
-    link.click();
+    autoTable(doc, {
+      head: [['Paket', 'Y', 'C', 'Tip', 'Tutar', 'KK', 'TL', 'USD', 'EUR']],
+      body: tableData,
+      startY: 72,
+      theme: 'plain',
+      styles: {
+        fontSize: 8,
+        cellPadding: 3,
+        textColor: [60, 60, 60],
+      },
+      headStyles: {
+        fillColor: [31, 78, 121],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        halign: 'center',
+        fontSize: 7,
+      },
+      bodyStyles: {
+        lineColor: [240, 240, 240],
+        lineWidth: 0.5,
+      },
+      alternateRowStyles: {
+        fillColor: [252, 252, 252],
+      },
+      columnStyles: {
+        0: { halign: 'left', cellWidth: 50 },
+        1: { halign: 'center', cellWidth: 12 },
+        2: { halign: 'center', cellWidth: 12 },
+        3: { halign: 'center', cellWidth: 18 },
+        4: { halign: 'right', cellWidth: 28 },
+        5: { halign: 'right', cellWidth: 22 },
+        6: { halign: 'right', cellWidth: 22 },
+        7: { halign: 'right', cellWidth: 18 },
+        8: { halign: 'right', cellWidth: 18 },
+      },
+      foot: [[
+        'TOPLAM',
+        `${totalAdult}`,
+        `${totalChild}`,
+        '',
+        '',
+        `${totals.kkTl.toFixed(0)}`,
+        `${totals.cashTl.toFixed(0)}`,
+        `${totals.cashUsd.toFixed(0)}`,
+        `${totals.cashEur.toFixed(0)}`,
+      ]],
+      footStyles: {
+        fillColor: [31, 78, 121],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 8,
+      },
+      margin: { left: margin, right: margin },
+    });
+    
+    // === FOOTER ===
+    doc.setTextColor(180, 180, 180);
+    doc.setFontSize(7);
+    doc.text('Adrenalin Satis Sistemi', pageWidth / 2, pageHeight - 10, { align: 'center' });
+    
+    // Save PDF
+    doc.save(`Satis_Raporu_${kasaName.replace(/\s/g, '_')}_${currentDate.replace(/\./g, '-')}.pdf`);
   };
 
   const getTotals = () => {
@@ -1017,11 +1016,11 @@ export default function SalesPanel({ usdRate = 30, eurRate = 50.4877, onSalesUpd
               Excel İndir
             </button>
             <button
-              onClick={exportToHTML}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+              onClick={exportToPDF}
+              className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded transition-colors"
             >
-              <Download className="w-4 h-4" />
-              HTML İndir
+              <FileText className="w-4 h-4" />
+              PDF İndir
             </button>
           </div>
         </div>

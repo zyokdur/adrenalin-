@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Share2, Download, FileSpreadsheet, Trash2 } from 'lucide-react';
+import { Share2, Download, FileSpreadsheet, Trash2, FileText } from 'lucide-react';
 import { 
   loadCrossSalesFromFirebase, 
   saveCrossSalesToFirebase, 
   subscribeCrossSales 
 } from '@/utils/firebaseSales';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface CrossSale {
   id: string;
@@ -454,136 +456,147 @@ export default function CrossSalesTab() {
     URL.revokeObjectURL(link.href);
   };
 
-  const exportToHTML = () => {
+  const exportToPDF = () => {
     const currentDate = new Date().toLocaleDateString('tr-TR');
+    const session = JSON.parse(localStorage.getItem('userSession') || '{}');
+    const userName = session.personnel?.fullName || 'Kullanıcı';
+    const kasaName = session.kasa?.name || 'Kasa';
+    const kasaSettings = JSON.parse(localStorage.getItem(`kasaSettings_${session.kasa?.id}`) || '{}');
+    const usdRate = kasaSettings.usdRate || 30;
+    const eurRate = kasaSettings.eurRate || 50.4877;
     const totals = getTotals();
     
-    let html = `
-      <!DOCTYPE html>
-      <html lang="tr">
-      <head>
-        <meta charset="UTF-8">
-        <title>Çapraz Satış Raporu - ${currentDate}</title>
-        <style>
-          body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            margin: 40px; 
-            background: #f5f5f5;
-          }
-          .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-          }
-          h1 { 
-            color: #1a1a1a; 
-            border-bottom: 3px solid #FF6B6B;
-            padding-bottom: 10px;
-          }
-          table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            margin: 20px 0;
-          }
-          th { 
-            background: #2c3e50; 
-            color: white; 
-            padding: 12px; 
-            text-align: left;
-          }
-          td { 
-            padding: 10px; 
-            border-bottom: 1px solid #ddd;
-          }
-          tr:hover { 
-            background: #f8f9fa;
-          }
-          .totals {
-            margin-top: 30px;
-            padding: 20px;
-            background: #ecf0f1;
-            border-radius: 5px;
-          }
-          .text-right { text-align: right; }
-          .text-center { text-align: center; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <h1>ÇAPRAZ SATIŞ RAPORU</h1>
-          <div class="date">Tarih: ${currentDate}</div>
-          
-          <table>
-            <thead>
-              <tr>
-                <th>Paket</th>
-                <th class="text-center">Yetişkin</th>
-                <th class="text-center">Çocuk</th>
-                <th class="text-center">Para Birimi</th>
-                <th class="text-center">Ödeme Tipi</th>
-                <th class="text-right">Toplam</th>
-                <th class="text-right">KK(TL)</th>
-                <th class="text-right">Nakit(TL)</th>
-                <th class="text-right">Nakit(USD)</th>
-                <th class="text-right">Nakit(EUR)</th>
-              </tr>
-            </thead>
-            <tbody>
-    `;
+    // Z Rapor hesaplamaları
+    const cashTlTotal = totals.cashTl + (totals.cashUsd * usdRate) + (totals.cashEur * eurRate);
+    const grandTotal = totals.kkTl + cashTlTotal;
+    const totalPax = totals.totalAdult + totals.totalChild;
     
-    crossSales.forEach(sale => {
-      html += `
-              <tr>
-                <td>${sale.packageName}</td>
-                <td class="text-center">${sale.adultQty}</td>
-                <td class="text-center">${sale.childQty}</td>
-                <td class="text-center">${sale.currency}</td>
-                <td class="text-center">${sale.paymentType}</td>
-                <td class="text-right">${sale.total.toFixed(2)}</td>
-                <td class="text-right">${sale.kkTl > 0 ? sale.kkTl.toFixed(2) : '-'}</td>
-                <td class="text-right">${sale.cashTl > 0 ? sale.cashTl.toFixed(2) : '-'}</td>
-                <td class="text-right">${sale.cashUsd > 0 ? sale.cashUsd.toFixed(2) : '-'}</td>
-                <td class="text-right">${sale.cashEur > 0 ? sale.cashEur.toFixed(2) : '-'}</td>
-              </tr>
-      `;
+    // Portrait A4 - daha kompakt
+    const doc = new jsPDF('portrait', 'mm', 'a4');
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 15;
+    
+    // === HEADER - Minimal ===
+    doc.setFillColor(45, 45, 45);
+    doc.rect(0, 0, pageWidth, 35, 'F');
+    
+    // Title
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('CAPRAZ SATIS RAPORU', margin, 18);
+    
+    // Info line
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(180, 180, 180);
+    doc.text(`${kasaName}  •  ${userName}  •  ${currentDate}`, margin, 28);
+    
+    // === SUMMARY ROW - Tek satır ===
+    const summaryY = 45;
+    doc.setFillColor(250, 250, 250);
+    doc.rect(margin, summaryY, pageWidth - margin * 2, 20, 'F');
+    doc.setDrawColor(230, 230, 230);
+    doc.rect(margin, summaryY, pageWidth - margin * 2, 20, 'S');
+    
+    // Summary items inline
+    const itemWidth = (pageWidth - margin * 2) / 5;
+    const summaryItems = [
+      { label: 'USD', value: `${usdRate.toFixed(2)} TL` },
+      { label: 'EUR', value: `${eurRate.toFixed(2)} TL` },
+      { label: 'PAX', value: `${totals.totalAdult}Y + ${totals.totalChild}C = ${totalPax}` },
+      { label: 'K.KARTI', value: `${totals.kkTl.toFixed(0)} TL` },
+      { label: 'TOPLAM', value: `${grandTotal.toFixed(0)} TL` },
+    ];
+    
+    summaryItems.forEach((item, i) => {
+      const x = margin + (itemWidth * i) + itemWidth / 2;
+      doc.setFontSize(7);
+      doc.setTextColor(120, 120, 120);
+      doc.text(item.label, x, summaryY + 7, { align: 'center' });
+      doc.setFontSize(10);
+      doc.setTextColor(45, 45, 45);
+      doc.setFont('helvetica', 'bold');
+      doc.text(item.value, x, summaryY + 15, { align: 'center' });
+      doc.setFont('helvetica', 'normal');
     });
     
-    html += `
-            </tbody>
-          </table>
-          
-          <div class="totals">
-            <h2>TOPLAM ÖZET</h2>
-            <div class="total-item">
-              <span>Kredi Kartı (TL):</span>
-              <span>${totals.kkTl.toFixed(2)} ₺</span>
-            </div>
-            <div class="total-item">
-              <span>Nakit (TL):</span>
-              <span>${totals.cashTl.toFixed(2)} ₺</span>
-            </div>
-            <div class="total-item">
-              <span>Nakit (USD):</span>
-              <span>${totals.cashUsd.toFixed(2)} $</span>
-            </div>
-            <div class="total-item">
-              <span>Nakit (EUR):</span>
-              <span>${totals.cashEur.toFixed(2)} €</span>
-            </div>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
+    // === TABLE - Kompakt ===
+    const tableData = crossSales.map(sale => [
+      sale.packageName,
+      `${sale.adultQty}`,
+      `${sale.childQty}`,
+      sale.paymentType === 'Kredi Kartı' ? 'KK' : 'Nakit',
+      `${sale.total.toFixed(0)} ${sale.currency}`,
+      sale.kkTl > 0 ? `${sale.kkTl.toFixed(0)}` : '-',
+      sale.cashTl > 0 ? `${sale.cashTl.toFixed(0)}` : '-',
+      sale.cashUsd > 0 ? `${sale.cashUsd.toFixed(0)}` : '-',
+      sale.cashEur > 0 ? `${sale.cashEur.toFixed(0)}` : '-',
+    ]);
     
-    const blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `capraz_satis_${currentDate.replace(/\./g, '_')}.html`;
-    link.click();
+    autoTable(doc, {
+      head: [['Paket', 'Y', 'C', 'Tip', 'Tutar', 'KK', 'TL', 'USD', 'EUR']],
+      body: tableData,
+      startY: 72,
+      theme: 'plain',
+      styles: {
+        fontSize: 8,
+        cellPadding: 3,
+        textColor: [60, 60, 60],
+      },
+      headStyles: {
+        fillColor: [45, 45, 45],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        halign: 'center',
+        fontSize: 7,
+      },
+      bodyStyles: {
+        lineColor: [240, 240, 240],
+        lineWidth: 0.5,
+      },
+      alternateRowStyles: {
+        fillColor: [252, 252, 252],
+      },
+      columnStyles: {
+        0: { halign: 'left', cellWidth: 50 },
+        1: { halign: 'center', cellWidth: 12 },
+        2: { halign: 'center', cellWidth: 12 },
+        3: { halign: 'center', cellWidth: 18 },
+        4: { halign: 'right', cellWidth: 28 },
+        5: { halign: 'right', cellWidth: 22 },
+        6: { halign: 'right', cellWidth: 22 },
+        7: { halign: 'right', cellWidth: 18 },
+        8: { halign: 'right', cellWidth: 18 },
+      },
+      foot: [[
+        'TOPLAM',
+        `${totals.totalAdult}`,
+        `${totals.totalChild}`,
+        '',
+        '',
+        `${totals.kkTl.toFixed(0)}`,
+        `${totals.cashTl.toFixed(0)}`,
+        `${totals.cashUsd.toFixed(0)}`,
+        `${totals.cashEur.toFixed(0)}`,
+      ]],
+      footStyles: {
+        fillColor: [45, 45, 45],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 8,
+      },
+      margin: { left: margin, right: margin },
+    });
+    
+    // === FOOTER ===
+    doc.setTextColor(180, 180, 180);
+    doc.setFontSize(7);
+    doc.text('Adrenalin Satis Sistemi', pageWidth / 2, pageHeight - 10, { align: 'center' });
+    
+    // Save
+    doc.save(`capraz_satis_${currentDate.replace(/\./g, '_')}.pdf`);
   };
 
   const getTotals = () => {
@@ -692,11 +705,11 @@ export default function CrossSalesTab() {
                 Excel İndir
               </button>
               <button
-                onClick={exportToHTML}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                onClick={exportToPDF}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded transition-colors"
               >
-                <Download className="w-4 h-4" />
-                HTML İndir
+                <FileText className="w-4 h-4" />
+                PDF İndir
               </button>
             </div>
           </>
