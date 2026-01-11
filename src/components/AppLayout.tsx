@@ -1,23 +1,40 @@
 import { useState } from 'react';
 import { LogOut, Package, Droplets, Share2, Settings, LayoutDashboard, Briefcase, User, Menu, X } from 'lucide-react';
+import { KasaInfo } from './LoginPage';
+
+interface UserSession {
+  kasa: KasaInfo;
+  userName: string;
+}
 
 interface LayoutProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   children: React.ReactNode;
+  session: UserSession;
+  onLogout: () => void;
 }
 
 const TABS = [
   { id: 'dashboard', label: 'Panolar', icon: LayoutDashboard },
   { id: 'packages', label: 'Paketler', icon: Package },
-  { id: 'aquarium', label: 'Akvaryum', icon: Droplets },
+  { id: 'aquarium', label: 'Rapor', icon: Droplets },
   { id: 'crosssales', label: 'Çapraz Satış', icon: Share2 },
   { id: 'settings', label: 'Ayarlar', icon: Settings },
 ];
 
-export default function AppLayout({ activeTab, onTabChange, children }: LayoutProps) {
-  const [user] = useState({ name: 'Admin', register: 'Kasa 1' });
+export default function AppLayout({ activeTab, onTabChange, children, session, onLogout }: LayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Kasa renklerini belirle
+  const getKasaColor = () => {
+    switch (session.kasa.id) {
+      case 'wildpark': return 'text-green-400';
+      case 'sinema': return 'text-purple-400';
+      case 'face2face': return 'text-cyan-400';
+      default: return 'text-blue-400';
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex">
@@ -40,12 +57,12 @@ export default function AppLayout({ activeTab, onTabChange, children }: LayoutPr
           {/* Kasa Info */}
           <div className="space-y-2 text-sm">
             <div className="flex items-center gap-2 text-gray-300">
-              <Briefcase className="w-4 h-4 text-blue-400" />
-              <span>{user.register}</span>
+              <Briefcase className={`w-4 h-4 ${getKasaColor()}`} />
+              <span className={getKasaColor()}>{session.kasa.name}</span>
             </div>
             <div className="flex items-center gap-2 text-gray-300">
               <User className="w-4 h-4 text-green-400" />
-              <span>{user.name}</span>
+              <span>{session.userName}</span>
             </div>
           </div>
         </div>
@@ -76,7 +93,10 @@ export default function AppLayout({ activeTab, onTabChange, children }: LayoutPr
 
         {/* Logout */}
         <div className="p-3 border-t border-gray-800">
-          <button className="w-full bg-red-600/20 text-red-400 hover:bg-red-600/30 px-3 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm">
+          <button 
+            onClick={onLogout}
+            className="w-full bg-red-600/20 text-red-400 hover:bg-red-600/30 px-3 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
+          >
             <LogOut className="w-4 h-4" />
             Çıkış
           </button>
